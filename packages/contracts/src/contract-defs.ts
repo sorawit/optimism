@@ -1,5 +1,3 @@
-import * as path from 'path'
-import * as glob from 'glob'
 import {
   ethers,
   ContractFactory,
@@ -9,18 +7,10 @@ import {
   constants,
 } from 'ethers'
 import { Interface } from 'ethers/lib/utils'
+import { getContractArtifact } from './contract-artifacts'
 
 export const getContractDefinition = (name: string, ovm?: boolean): any => {
-  const match = glob.sync(
-    path.resolve(__dirname, `../artifacts${ovm ? '-ovm' : ''}`) +
-      `/**/${name.split('-').join(':')}.json`
-  )
-
-  if (match.length > 0) {
-    return require(match[0])
-  } else {
-    throw new Error(`Unable to find artifact for contract: ${name}`)
-  }
+  return getContractArtifact(name, ovm)
 }
 
 export const getContractInterface = (
