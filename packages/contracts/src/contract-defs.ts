@@ -10,7 +10,11 @@ import { Interface } from 'ethers/lib/utils'
 import { getContractArtifact } from './contract-artifacts'
 
 export const getContractDefinition = (name: string, ovm?: boolean): any => {
-  return getContractArtifact(name, ovm)
+  const artifact = getContractArtifact(name, ovm)
+  if (artifact === undefined) {
+    throw new Error(`Unable to find artifact for contract: ${name}`)
+  }
+  return artifact
 }
 
 export const getContractInterface = (
