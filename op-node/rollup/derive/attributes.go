@@ -105,8 +105,14 @@ func (ba *FetchingAttributesBuilder) PreparePayloadAttributes(ctx context.Contex
 		return nil, NewCriticalError(fmt.Errorf("failed to create l1InfoTx: %w", err))
 	}
 
+	pushOracleTx, err := PushOracleDepositBytes(seqNumber, l1Info, sysConfig, ba.cfg.IsRegolith(nextL2Time))
+	if err != nil {
+		return nil, NewCriticalError(fmt.Errorf("failed to create pushOracleTx: %w", err))
+	}
+
 	txs := make([]hexutil.Bytes, 0, 1+len(depositTxs))
 	txs = append(txs, l1InfoTx)
+	txs = append(txs, pushOracleTx)
 	txs = append(txs, depositTxs...)
 
 	var withdrawals *types.Withdrawals

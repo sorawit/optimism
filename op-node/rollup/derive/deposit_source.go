@@ -13,8 +13,9 @@ type UserDepositSource struct {
 }
 
 const (
-	UserDepositSourceDomain   = 0
-	L1InfoDepositSourceDomain = 1
+	UserDepositSourceDomain       = 0
+	L1InfoDepositSourceDomain     = 1
+	PushOracleDepositSourceDomain = 2
 )
 
 func (dep *UserDepositSource) SourceHash() common.Hash {
@@ -41,6 +42,23 @@ func (dep *L1InfoDepositSource) SourceHash() common.Hash {
 
 	var domainInput [32 * 2]byte
 	binary.BigEndian.PutUint64(domainInput[32-8:32], L1InfoDepositSourceDomain)
+	copy(domainInput[32:], depositIDHash[:])
+	return crypto.Keccak256Hash(domainInput[:])
+}
+
+type PushOracleDepositSource struct {
+	L1BlockHash common.Hash
+	SeqNumber   uint64
+}
+
+func (dep *PushOracleDepositSource) SourceHash() common.Hash {
+	var input [32 * 2]byte
+	copy(input[:32], dep.L1BlockHash[:])
+	binary.BigEndian.PutUint64(input[32*2-8:], dep.SeqNumber)
+	depositIDHash := crypto.Keccak256Hash(input[:])
+
+	var domainInput [32 * 2]byte
+	binary.BigEndian.PutUint64(domainInput[32-8:32], PushOracleDepositSourceDomain)
 	copy(domainInput[32:], depositIDHash[:])
 	return crypto.Keccak256Hash(domainInput[:])
 }

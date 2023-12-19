@@ -26,6 +26,7 @@ const (
 	SchemaRegistry                = "0x4200000000000000000000000000000000000020"
 	EAS                           = "0x4200000000000000000000000000000000000021"
 	Create2Deployer               = "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
+	PushOracle                    = "0x1100000000000000000000000000000000000001"
 )
 
 var (
@@ -49,6 +50,7 @@ var (
 	SchemaRegistryAddr                = common.HexToAddress(SchemaRegistry)
 	EASAddr                           = common.HexToAddress(EAS)
 	Create2DeployerAddr               = common.HexToAddress(Create2Deployer)
+	PushOracleAddr                    = common.HexToAddress(PushOracle)
 
 	Predeploys          = make(map[string]*Predeploy)
 	PredeploysByAddress = make(map[common.Address]*Predeploy)
@@ -88,6 +90,7 @@ func init() {
 			return canyonTime != nil && *canyonTime == 0
 		},
 	}
+	Predeploys["PushOracle"] = &Predeploy{Address: PushOracleAddr}
 
 	for _, predeploy := range Predeploys {
 		PredeploysByAddress[predeploy.Address] = predeploy

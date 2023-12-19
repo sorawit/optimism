@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"math/rand"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -194,4 +195,84 @@ func L1InfoDepositBytes(seqNumber uint64, l1Info eth.BlockInfo, sysCfg eth.Syste
 		return nil, fmt.Errorf("failed to encode L1 info tx: %w", err)
 	}
 	return opaqueL1Tx, nil
+}
+
+// PushOracleInfo presents the oracle data to push to the blockchain
+type PushOracleInfo struct {
+	Slot uint64
+	Data uint64
+}
+
+const (
+	PushOracleFuncSignature = "set(uint256,uint256)"
+	PushOracleArguments     = 2
+	PushOracleLen           = 4 + 32*PushOracleArguments
+)
+
+var (
+	PushOracleFuncBytes4       = crypto.Keccak256([]byte(PushOracleFuncSignature))[:4]
+	PushOracleDepositerAddress = common.HexToAddress("0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001")
+	PushOralceAddress          = predeploys.PushOracleAddr
+)
+
+func (data *PushOracleInfo) MarshalBinary() ([]byte, error) {
+	w := bytes.NewBuffer(make([]byte, 0, PushOracleLen))
+	if err := solabi.WriteSignature(w, PushOracleFuncBytes4); err != nil {
+		return nil, err
+	}
+	if err := solabi.WriteUint64(w, data.Slot); err != nil {
+		return nil, err
+	}
+	if err := solabi.WriteUint64(w, data.Data); err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
+}
+
+func PushOracleDeposit(seqNumber uint64, block eth.BlockInfo) (*types.DepositTx, error) {
+	infoDat := PushOracleInfo{
+		Slot: 0,
+		Data: rand.Uint64(),
+	}
+	data, err := infoDat.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	source := PushOracleDepositSource{
+		L1BlockHash: block.Hash(),
+		SeqNumber:   seqNumber,
+	}
+	// Set a very large gas limit with `IsSystemTransaction` to ensure
+	// that the L1 Attributes Transaction does not run out of gas.
+	out := &types.DepositTx{
+		SourceHash:          source.SourceHash(),
+		From:                PushOracleDepositerAddress,
+		To:                  &PushOralceAddress,
+		Mint:                nil,
+		Value:               big.NewInt(0),
+		Gas:                 150_000_000,
+		IsSystemTransaction: true,
+		Data:                data,
+	}
+	// With the regolith fork we disable the IsSystemTx functionality, and allocate real gas
+	if true {
+		out.IsSystemTransaction = false
+		out.Gas = RegolithSystemTxGas
+	}
+	return out, nil
+}
+
+// PushOracleDepositBytes returns a serialized push-based oracle transaction.
+func PushOracleDepositBytes(seqNumber uint64, block eth.BlockInfo, sysCfg eth.SystemConfig, regolith bool) ([]byte, error) {
+	dep, err := PushOracleDeposit(seqNumber, block)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create push oracle tx: %w", err)
+	}
+	tx := types.NewTx(dep)
+	opaqueTx, err := tx.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode push oracle tx: %w", err)
+	}
+	return opaqueTx, nil
 }
